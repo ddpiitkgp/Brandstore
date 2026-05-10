@@ -279,9 +279,9 @@ def change_password(request):
 
 
 @login_required(login_url='login')
-def order_detail(request, order_id):
-    order_detail = OrderProduct.objects.filter(order__order_number=order_id)
-    order = Order.objects.get(order_number=order_id)
+def order_detail(request, order_number):
+    order = get_object_or_404(Order, order_number=order_number, user=request.user)
+    order_detail = OrderProduct.objects.filter(order=order)
     subtotal = 0
     total_cgst = 0
     total_sgst = 0

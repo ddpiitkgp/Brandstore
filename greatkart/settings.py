@@ -79,8 +79,8 @@ AUTH_USER_MODEL = 'accounts.Account'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-        #'NAME': '/app/db/db.sqlite3', 
+        'NAME': BASE_DIR / 'dbdata/db.sqlite3',
+        #'NAME': 'dbdata/db.sqlite3', 
         # Uncomment above line and comment previous line for production server
     }
 }
