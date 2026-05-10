@@ -200,8 +200,13 @@ def place_order(request, total=0, quantity=0):
                 data.ip = request.META.get('REMOTE_ADDR')
                 data.save()
 
-                # Generate Order Number
-                order_number = datetime.date.today().strftime('%Y%m%d') + str(data.id)
+        # Generate Order Number
+                yr = int(datetime.date.today().strftime('%Y'))
+                dt = int(datetime.date.today().strftime('%d'))
+                mt = int(datetime.date.today().strftime('%m'))
+                d = datetime.date(yr,mt,dt)
+                current_date = d.strftime("%Y%m%d") #20210305
+                order_number = current_date + str(data.id)
                 data.order_number = order_number
                 data.save()
 
@@ -229,13 +234,16 @@ def place_order(request, total=0, quantity=0):
 def order_complete(request):
     order_number = request.GET.get('order_number')
     transID = request.GET.get('payment_id')
-    print(order_number)
-    print(transID)
+
     try:
-        payment = Payment.objects.get(payment_id=transID)
         order = Order.objects.get(order_number=order_number, is_ordered=True)
         ordered_products = OrderProduct.objects.filter(order_id=order.id)
+
         subtotal = 0
+        for i in ordered_products:
+            subtotal += i.product_price * i.quantity
+
+        payment = Payment.objects.get(payment_id=transID)
         total_cgst = 0
         total_sgst = 0
         for i in ordered_products:
