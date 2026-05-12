@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <h2>Order Summary</h2>
+            <hr>
+            <div class="card">
+                <div class="card-body">
+                    <p><strong>Order Number:</strong><input class='form-input' max-length=50 size=20 value="{{ order_number }}"></p>
+                    <p><strong>Total Amount:</strong><input class='form-input' max-length=50 size=20 value="{{ total_amount }}"></p>
+                    <p>By clicking the button below, you agree to our terms of service.</p>
+                    
+                    <!-- Placeholder for Payment Gateway Button -->
+                    <div id="payment-button-container">
+                        <button class="btn btn-primary btn-lg btn-block">Pay with Gateway</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

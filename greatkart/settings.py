@@ -23,15 +23,14 @@ INSTALLED_APPS = [
     'store',
     'carts',
     'orders',
+    'payment',
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CSRF_TRUSTED_ORIGINS = [
     "https://brandstore.iitkgp.ac.in",
-    "http://127.0.0.1:8000",
-    "http://127.0.0.1:8080",
-    "http://localhost:8000",
-    "http://localhost:8080",
+    "https://localhost",
+    "https://localhost:8080",
 ]
 
 # Middleware
@@ -78,10 +77,18 @@ AUTH_USER_MODEL = 'accounts.Account'
 # Use local SQLite for local testing
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'dbdata/db.sqlite3',
-        #'NAME': 'dbdata/db.sqlite3', 
-        # Uncomment above line and comment previous line for production server
+        ## MYSQL        
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.environ.get('DB_NAME', 'brandingdb'),
+        'USER': os.environ.get('DB_USER', 'root'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'rootpassword'),
+        'HOST': os.environ.get('DB_HOST', 'mariadb'), # Match the service name
+        'PORT': os.environ.get('DB_PORT', '3306'),
+        ##  SQLITE
+        ## 'ENGINE': 'django.db.backends.sqlite3',
+        ## #'NAME': BASE_DIR / 'dbdata/db.sqlite3',
+        ## 'NAME': '/dbdata/db.sqlite3', 
+        ## # Uncomment above line and comment previous line for production server
     }
 }
 
@@ -101,10 +108,7 @@ USE_L10N = True
 USE_TZ = True
 
 # CORRECTED Static files configuration for BOTH root-level AND app-level static folders
-STATIC_URL = '/static/'
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media/media')
 
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
@@ -115,7 +119,12 @@ STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.AppDirectoriesFinder', 
 ]
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, '/staticfiles')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media/media')
 
 # Messages config
 from django.contrib.messages import constants as messages
