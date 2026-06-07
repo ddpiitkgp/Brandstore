@@ -33,8 +33,8 @@ def send_email(subject, body, to_emails):
     try:
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             # comment the below 2 in Production server
-            server.starttls()
-            server.login(sender_email, sender_password)
+            #server.starttls()
+            #server.login(sender_email, sender_password)
             server.send_message(msg)
         print("Email sent successfully!")
         return True
@@ -50,10 +50,12 @@ def payments(request):
 
     # 1. Store transaction details
     payment = Payment(
-        user = request.user,
-        payment_id = body['transID'],
-        payment_method = body['payment_method'],
-        amount_paid = order.order_total,
+        user_id = request.user,
+        order_id = order.order_number,  
+        txn_payment_id = body['transID'],
+        total_price = order.order_total,
+        txn_amount_paid = order.order_total,  # Assuming the amount paid is the same as order total
+        txn_order = order.order_number,
         status = body['status'],
     )
     payment.save()
@@ -112,7 +114,7 @@ def payments(request):
             'order': order,
             'ordered_products': ordered_products,
             'order_number': order.order_number,
-            'transID': payment.payment_id,
+            'transID': payment.txn_payment_id,
             'payment': payment,
 
             'subtotal': subtotal,
@@ -136,7 +138,7 @@ def payments(request):
         
         data = {
             'order_number': order.order_number,
-            'transID': payment.payment_id,            
+            'transID': payment.txn_payment_id,            
         }
         return JsonResponse(data)
     
@@ -233,7 +235,7 @@ def place_order(request, total=0, quantity=0):
 
 def order_complete(request):
     order_number = request.GET.get('order_number')
-    transID = request.GET.get('payment_id')
+    transID = request.GET.get('txn_payment_id')
 
     try:
         order = Order.objects.get(order_number=order_number, is_ordered=True)
@@ -243,7 +245,7 @@ def order_complete(request):
         for i in ordered_products:
             subtotal += i.product_price * i.quantity
 
-        payment = Payment.objects.get(payment_id=transID)
+        payment = Payment.objects.get(txn_payment_id=transID)
         total_cgst = 0
         total_sgst = 0
         for i in ordered_products:
@@ -276,7 +278,7 @@ def order_complete(request):
             'order': order,
             'ordered_products': ordered_products,
             'order_number': order.order_number,
-            'transID': payment.payment_id,
+            'transID': payment.txn_payment_id,
             'payment': payment,
             'subtotal': subtotal,
             'cgst': total_cgst,
@@ -307,7 +309,7 @@ def email_template(request):
     transID = request.GET.get('payment_id')
     
     try:
-        payment = Payment.objects.get(payment_id=transID)
+        payment = Payment.objects.get(txn_payment_id=transID)
         order = Order.objects.get(order_number=order_number, is_ordered=True)
         ordered_products = OrderProduct.objects.filter(order_id=order.id)
         
@@ -327,7 +329,7 @@ def email_template(request):
             'order': order,
             'ordered_products': ordered_products,
             'order_number': order.order_number,
-            'transID': payment.payment_id,
+            'transID': payment.txn_payment_id,
             'payment': payment,
             'subtotal': subtotal,
             'cgst': total_cgst,

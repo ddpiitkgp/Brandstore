@@ -23,15 +23,16 @@ INSTALLED_APPS = [
     'store',
     'carts',
     'orders',
+    'payment',
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CSRF_TRUSTED_ORIGINS = [
     "https://brandstore.iitkgp.ac.in",
-    "http://127.0.0.1:8000",
-    "http://127.0.0.1:8080",
-    "http://localhost:8000",
-    "http://localhost:8080",
+    #"http://127.0.0.1:8000",
+    #"http://127.0.0.1:8080",
+    #"http://localhost:8000",
+    #"http://localhost:8080",
 ]
 
 # Middleware
@@ -78,10 +79,18 @@ AUTH_USER_MODEL = 'accounts.Account'
 # Use local SQLite for local testing
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'dbdata/db.sqlite3',
-        #'NAME': 'dbdata/db.sqlite3', 
-        # Uncomment above line and comment previous line for production server
+        ## MYSQL        
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.environ.get('DB_NAME', 'brandingdb'),
+        'USER': os.environ.get('DB_USER', 'root'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'rootpassword'),
+        'HOST': os.environ.get('DB_HOST', 'mariadb'), # Match the service name
+        'PORT': os.environ.get('DB_PORT', '3306'),
+        ##  SQLITE
+        ## 'ENGINE': 'django.db.backends.sqlite3',
+        ## #'NAME': BASE_DIR / 'dbdata/db.sqlite3',
+        ## 'NAME': '/dbdata/db.sqlite3', 
+        ## # Uncomment above line and comment previous line for production server
     }
 }
 
@@ -101,10 +110,7 @@ USE_L10N = True
 USE_TZ = True
 
 # CORRECTED Static files configuration for BOTH root-level AND app-level static folders
-STATIC_URL = '/static/'
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media/media')
 
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
@@ -115,7 +121,12 @@ STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.AppDirectoriesFinder', 
 ]
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, '/staticfiles')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media/media')
 
 # Messages config
 from django.contrib.messages import constants as messages
@@ -124,14 +135,14 @@ MESSAGE_TAGS = {messages.ERROR: 'danger'}
 # Email config
 EMAIL_BACKEND = 'greatkart.email_backend.CertifiEmailBackend'
 # Uncomment this in Production server
-# EMAIL_HOST = '10.3.103.129'
-# EMAIL_PORT = 25
-# EMAIL_USE_TLS = False
+EMAIL_HOST = '10.3.103.129'
+EMAIL_PORT = 25
+EMAIL_USE_TLS = False
 EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+DEFAULT_FROM_EMAIL =  config('DEFAULT_FROM_EMAIL', default='')
 ADMIN_EMAILS = config('ADMIN_EMAILS', default='') 
 

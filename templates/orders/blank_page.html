@@ -59,8 +59,8 @@
         },
         body: JSON.stringify({
           orderID: orderID,
-          transID: "DUMMY-" + Math.floor(Math.random() * 1000000),
-          payment_method: "Dummy Payment",
+          transID: "" + Math.floor(Math.random() * 1000000),
+          payment_method: "Online",
           status: paymentStatus,
         }),
       })
@@ -78,15 +78,18 @@
             redirect_url +
             "?order_number=" +
             orderID +
-            "&payment_id=" +
+            "&txn_payment_id=" +
             data.transID;
         })
         .catch((error) => {
-          console.error("Payment Process Interrupted:", error);
-          alert("Payment Failed");
+          console.log("Payment Process Interrupted:", error);
+          alert("Payment Failed: " + error.message + "\n" + url);
           window.location.href = cartUrl + "?payment_failed=true";
         });
     }
+
+
+
 
     // Yes I confirm
     const confirmBtn = document.getElementById("confirm-payment-btn");

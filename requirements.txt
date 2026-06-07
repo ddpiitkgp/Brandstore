@@ -20,3 +20,4 @@ s3transfer              # Use latest
 six                     # Use latest
 sqlparse                # Use latest
 urllib3                 # Use latest
+mysqlclient>=2.2.4      # Use 2.2.4

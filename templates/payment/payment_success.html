@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="text-center">
+        <h1 class="display-4 text-success">Payment Successful!</h1>
+        <p class="lead">Thank you for your purchase. Your order has been placed.</p>
+        <div class="alert alert-info">
+            <strong>Transaction ID:</strong> {{ payment_id }}
+        </div>
+        <a href="{% url 'home' %}" class="btn btn-outline-primary">Continue Shopping</a>
+    </div>
+</div>
+{% endblock %}
