@@ -90,7 +90,7 @@ def payment_response(request):
     payment = Payment.objects.filter(order_id=order_number).first()
 
     if not payment:
-        return redirect("payment_failed")
+        return redirect(f"/payment/payment_failed/?order_number={order_number}")
 
     try:
 
@@ -136,9 +136,10 @@ def payment_response(request):
 
     except Exception as e:
 
-        payment.status = "FAILED"
-        payment.txn_status = "FAILED"
-        payment.save()
+        if payment:
+            payment.status = "FAILED"
+            payment.txn_status = "FAILED"
+            payment.save()
 
         PaymentHistory.objects.create(
             payment=payment,
@@ -149,7 +150,7 @@ def payment_response(request):
             remarks=str(e)
         )
 
-        return redirect( f"/payment/payment_failed/?order_number={order_number}" )
+        return redirect(f"/payment/payment_failed/?order_number={order_number}")
 
 def payment_success(request):
     order_number = request.GET.get("order_number")

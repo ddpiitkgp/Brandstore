@@ -162,8 +162,8 @@
                             };
 
                             rzp.on('payment.failed', function(response) {
-
-                                window.location.href = "{% url 'payment_failed' %}";
+                                
+                                window.location.href = "{% url 'payment_failed' %}?order_number={{ order.order_number }}";
                             });
                             </script>
                              <!-- -->
