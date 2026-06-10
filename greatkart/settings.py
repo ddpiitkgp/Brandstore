@@ -18,6 +18,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
     'category',
     'accounts',
     'store',
@@ -145,4 +146,8 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL =  config('DEFAULT_FROM_EMAIL', default='')
 ADMIN_EMAILS = config('ADMIN_EMAILS', default='') 
+
+RAZORPAY_KEY_ID = "rzp_test_SxvnTfLd4RDRpe"
+RAZORPAY_KEY_SECRET = "J55IBv1dU6wZeqNy27eDAsel"
+RAZORPAY_WEBHOOK_SECRET = "webhook_secret"
 

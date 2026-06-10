@@ -4,6 +4,8 @@
 <div class="container mt-5">
     <div class="text-center">
         <h1 class="display-4 text-danger">Payment Failed</h1>
+        <br>
+         <strong>Transaction ID: {{ payment.txn_payment_id }} for Payment of Rs: ₹{{ payment.txn_amount_paid }} for Order Number: {{ order_number }} </strong>
         <p class="lead">We're sorry, but your transaction could not be processed at this time.</p>
         <p>Please check your payment details and try again.</p>
         <hr>

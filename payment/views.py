@@ -5,8 +5,17 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.conf import settings
+from django.shortcuts import get_object_or_404
 import datetime, json
-from .models import Order, Payment, OrderProduct
+from .models import Order, Payment, OrderProduct, PaymentHistory
+from store.models import ProductVariation, Product
+
+from decimal import Decimal
+import razorpay
+from django.conf import settings
+from rest_framework.views import APIView
+from rest_framework.response import Response
+
 
 
 def payment(request):
@@ -16,51 +25,148 @@ def payment(request):
     return render(request, 'payment/payment.html', {'order_number': '', 'total_amount': ''})
 
 def payment_summary(request):
-    """
-    Renders the initial payment page (checkout summary/payment button).
-    """
+
     if request.method == "POST":
-        order_id = request.POST.get("order_id")
-        amount = request.POST.get("amount")
-        body = json.loads(request.body)
 
-        order = Order.objects.get(order_number=order_id)
-        payment = Payment.objects.get(order_number=order_id)
+        frm_order_id = request.POST.get("order_id")
+        frm_amount = request.POST.get("amount")
 
-        order = get_object_or_404(
-            Order,
-            order_id=order_id,
-            user=request.user
+        order = Order.objects.filter(
+            order_number=frm_order_id
+        ).first()
+
+        orderproduct = OrderProduct.objects.filter(
+            order_id=order.id
+        ).first()
+
+        product_variation = ProductVariation.objects.filter(
+            id=orderproduct.product_variation_id
+        ).first()
+
+        order_detail = OrderProduct.objects.filter(order=order)
+
+        client = razorpay.Client(
+            auth=(
+                settings.RAZORPAY_KEY_ID,
+                settings.RAZORPAY_KEY_SECRET
+            )
         )
+
+        razorpay_order = client.order.create({
+            "amount": int(float(frm_amount) * 100),
+            "currency": "INR",
+            "receipt": frm_order_id,
+            "payment_capture": 1
+        })
 
         context = {
             "order": order,
-            "amount": amount,
-            "customer_name": order.user.get_full_name(),
+            "amount": frm_amount,
+            "customer_name": order.full_name(),
             "email": order.user.email,
-            "order_id": order.order_id,
-            "product_name": order.product_name,
+            "order_id": order.order_number,
+            "product_name": product_variation.product.product_name,
+            "order_detail": order_detail,
+            "frm_amount": frm_amount,
+            # Razorpay
+            "razorpay_order_id": razorpay_order["id"],
+            "razorpay_key": settings.RAZORPAY_KEY_ID,
         }
-        return render(request, "payments/payment_summary.html", context)
+
+        return render(
+            request,
+            "payment/payment_summary.html",
+            context
+        )
 
     return redirect("payment")
 
 def payment_response(request):
-    """
-    Handles the webhook or callback response from the payment gateway.
-    Usually processes POST data from PayPal, Stripe, Razorpay, etc.
-    """
-    # Logic to verify and save payment data goes here
-    return HttpResponse("Processing Response...")
+
+    if request.method != "POST":
+        return redirect("payment")
+
+    order_number = request.POST.get("order_number")
+    payment = Payment.objects.filter(order_id=order_number).first()
+
+    if not payment:
+        return redirect("payment_failed")
+
+    try:
+
+        rzp_order_id = request.POST.get("razorpay_order_id")
+        rzp_payment_id = request.POST.get("razorpay_payment_id")
+        rzp_signature = request.POST.get("razorpay_signature")
+
+        PaymentHistory.objects.create(
+            payment=payment,
+            order_id=order_number,
+            event_name="CALLBACK_RECEIVED",
+            status="PROCESSING",
+            rawdata_inp=json.dumps(dict(request.POST), default=str)
+        )
+
+        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+        client.utility.verify_payment_signature({
+            "razorpay_order_id": rzp_order_id,
+            "razorpay_payment_id": rzp_payment_id,
+            "razorpay_signature": rzp_signature
+        })
+
+        payment_info = client.payment.fetch(rzp_payment_id)
+
+        payment.status = "SUCCESS"
+        payment.txn_id = rzp_order_id
+        payment.txn_payment_id = rzp_payment_id
+        payment.txn_signature = rzp_signature
+        payment.txn_status = payment_info.get("status")
+        payment.txn_amount_paid = str(payment_info.get("amount", 0) / 100)
+        payment.save()
+
+        PaymentHistory.objects.create(
+            payment=payment,
+            order_id=order_number,
+            event_name="PAYMENT_VERIFIED",
+            status="SUCCESS",
+            rawdata_out=json.dumps(payment_info, default=str)
+        )
+
+        return redirect(f"/payment/payment_success/?order_number={order_number}")
+
+    except Exception as e:
+
+        payment.status = "FAILED"
+        payment.txn_status = "FAILED"
+        payment.save()
+
+        PaymentHistory.objects.create(
+            payment=payment,
+            order_id=order_number,
+            event_name="PAYMENT_FAILED",
+            status="FAILED",
+            rawdata_inp=json.dumps(dict(request.POST), default=str),
+            remarks=str(e)
+        )
+
+        return redirect( f"/payment/payment_failed/?order_number={order_number}" )
 
 def payment_success(request):
-    """
-    The page shown to the user after a successful transaction.
-    """
-    return render(request, 'payment/payment_success.html', {'order_number': 'ABC-123'})
+    order_number = request.GET.get("order_number")
+    payment = Payment.objects.filter( order_id=order_number).first()
+    context = {
+        "order_number": order_number,
+        "payment": payment
+    }
+    return render( request, "payment/payment_success.html",context)
+
 
 def payment_failed(request):
-    """
-    The page shown to the user if the transaction is declined or cancelled.
-    """
-    return render(request, 'payment/payment_failed.html', {'order_number': 'ABC-123'})
+    order_number = request.GET.get("order_number")
+    payment = Payment.objects.filter( order_id=order_number).first()
+    context = {
+        "order_number": order_number,
+        "payment": payment
+    }
+    return render( request, "payment/payment_failed.html",context)
+

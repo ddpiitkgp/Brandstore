@@ -1,26 +1,22 @@
 from django.db import models
 from django.contrib.auth.models import User # Assuming you are using the default User model
 from accounts.models import Account
-from store.models import ProductVariation
+from store.models import ProductVariation, Product
 
 class Payment(models.Model):
-    order_id = models.CharField(max_length=100)
+    order_id = models.CharField(max_length=100, db_index=True)
     total_price = models.CharField(max_length=100)
-    status = models.CharField(max_length=100)
+    status = models.CharField(max_length=100, default="INITIATED")
+    txn_id = models.CharField(max_length=512, null=True, blank=True)  # Razorpay Order ID
+    txn_payment_id = models.CharField(max_length=512, null=True, blank=True)
+    txn_signature = models.CharField(max_length=512, null=True, blank=True)
+    txn_status = models.CharField(max_length=512, null=True, blank=True)
+    txn_amount_paid = models.CharField(max_length=100, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    user_id = models.ForeignKey(Account, null=True, on_delete=models.SET_NULL)
-    rawdata_inp = models.TextField()
-    rawdata_out = models.TextField()
-    txn_id = models.CharField(max_length=512, null=True, blank=True)
-    txn_order = models.IntegerField()
-    txn_amount_paid = models.CharField(max_length=100)
-    txn_payment_id = models.CharField(max_length=512)
-    txn_signature = models.CharField(max_length=512)
-    txn_status = models.CharField(max_length=512)
-    txn_payload = models.CharField(max_length=512)
-    txn_created_at = models.DateTimeField()
+    updated_at = models.DateTimeField(auto_now=True)
+
     def __str__(self):
-        return self.payment_id
+        return self.order_id
 
 
 class Order(models.Model):
@@ -74,10 +70,26 @@ class OrderProduct(models.Model):
     updated_at = models.DateTimeField(auto_now_add=True)
     cgst = models.FloatField(default=0)
     sgst = models.FloatField(default=0)
-
+ 
     @property
     def product(self):
         return self.product_variation.product
 
     def __str__(self):
         return self.product.product_name
+
+class PaymentHistory(models.Model):
+    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name="history", null=True, blank=True)
+    order_id = models.CharField(max_length=100, db_index=True)
+    event_name = models.CharField(max_length=100)
+    status = models.CharField(max_length=100)
+    rawdata_inp = models.TextField(null=True, blank=True)
+    rawdata_out = models.TextField(null=True, blank=True)
+    remarks = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "orders_payment_history"
+
+    def __str__(self):
+        return f"{self.order_id} - {self.event_name}"
