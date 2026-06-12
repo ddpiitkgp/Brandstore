@@ -112,17 +112,11 @@
                             var options = {
 
                                 key: "{{ razorpay_key }}",
-
                                 amount: "{{ amount|floatformat:2 }}00",
-
                                 currency: "INR",
-
-                                name: "Your Store",
-
+                                name: "Foreverkgpian, IIt Kharagpur",
                                 description: "Order #{{ order.order_number }}",
-
                                 order_id: "{{ razorpay_order_id }}",
-
                                 prefill: {
                                     name: "{{ customer_name }}",
                                     email: "{{ email }}"
@@ -155,9 +149,7 @@
                             var rzp = new Razorpay(options);
 
                             document.getElementById("rzp-button").onclick = function(e) {
-
                                 rzp.open();
-
                                 e.preventDefault();
                             };
 

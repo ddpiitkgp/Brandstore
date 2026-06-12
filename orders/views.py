@@ -12,35 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.conf import settings
 
-import smtplib
-from email.message import EmailMessage as RawEmailMessage
-
-def send_email(subject, body, to_emails):
-    from django.conf import settings
-    # Configuration
-    smtp_server = settings.EMAIL_HOST
-    smtp_port = settings.EMAIL_PORT
-    sender_email = settings.EMAIL_HOST_USER
-    sender_password = settings.EMAIL_HOST_PASSWORD
-
-    msg = RawEmailMessage()
-    msg.set_content(body)
-    msg.add_alternative(body, subtype='html')
-    msg['Subject'] = subject
-    msg['From'] = sender_email
-    msg['To'] = to_emails
-
-    try:
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            # comment the below 2 in Production server
-            #server.starttls()
-            #server.login(sender_email, sender_password)
-            server.send_message(msg)
-        print("Email sent successfully!")
-        return True
-    except Exception as e:
-        print(f"Error sending email: {e}")
-        return False
+from greatkart.services import send_email
 
 @require_POST
 @login_required(login_url='login')
@@ -50,7 +22,6 @@ def payments(request):
 
     # 1. Store transaction details
     payment = Payment(
-        user_id = request.user,
         order_id = order.order_number,  
         txn_payment_id = body['transID'],
         total_price = order.order_total,
@@ -144,6 +115,7 @@ def payments(request):
     
     else:
         return JsonResponse({'status': 'Failed', 'message': 'Payment was not successful'}, status=400)
+        
 @login_required(login_url='login')
 def place_order(request, total=0, quantity=0):
     current_user = request.user
@@ -273,7 +245,7 @@ def order_complete(request):
             email_result = "Failed to send email"
         else:
             email_result = None
-
+        
         context = {
             'order': order,
             'ordered_products': ordered_products,

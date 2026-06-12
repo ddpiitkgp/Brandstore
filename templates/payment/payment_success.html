@@ -4,7 +4,7 @@
 <div class="container mt-5">
     <div class="text-center">
         <h1 class="display-4 text-success">Payment Successful!</h1>
-        <p class="lead">Thank you for your purchase. Your order has been placed.</p>
+        <p class="lead">Thank you for your purchase. Your order has been placed. <br> <font color=red>{{ email_result }}</font> </p>
         <div class="alert alert-info">
             <strong>Transaction ID: {{ payment.txn_payment_id }} for Payment of Rs: ₹{{ payment.txn_amount_paid }} for Order Number: {{ order_number }} </strong>
         </div>

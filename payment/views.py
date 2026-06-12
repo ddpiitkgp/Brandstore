@@ -15,7 +15,7 @@ import razorpay
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
-
+from greatkart.services import send_email
 
 
 def payment(request):
@@ -31,18 +31,9 @@ def payment_summary(request):
         frm_order_id = request.POST.get("order_id")
         frm_amount = request.POST.get("amount")
 
-        order = Order.objects.filter(
-            order_number=frm_order_id
-        ).first()
-
-        orderproduct = OrderProduct.objects.filter(
-            order_id=order.id
-        ).first()
-
-        product_variation = ProductVariation.objects.filter(
-            id=orderproduct.product_variation_id
-        ).first()
-
+        order = Order.objects.filter( order_number=frm_order_id).first()
+        orderproduct = OrderProduct.objects.filter(order_id=order.id).first()
+        product_variation = ProductVariation.objects.filter(id=orderproduct.product_variation_id).first()
         order_detail = OrderProduct.objects.filter(order=order)
 
         client = razorpay.Client(
@@ -154,10 +145,30 @@ def payment_response(request):
 
 def payment_success(request):
     order_number = request.GET.get("order_number")
+    order = Order.objects.filter(order_number=order_number).first()
     payment = Payment.objects.filter( order_id=order_number).first()
+    
+    message = render_to_string('payment/payment_success_email.html', {
+        'order_number': order_number,
+        'payment': payment,
+    })
+    mail_subject = 'Thank you for your order!'
+    admin_email_str = settings.ADMIN_EMAILS
+    admin_emails = [email.strip() for email in admin_email_str.split(',') if email.strip()]
+    to_emails = [order.user.email] + admin_emails
+    result = send_email(mail_subject, message, to_emails)
+    email_result = bool(result)  # Ensure it's a boolean for consistent handling in the template
+    if email_result is True:
+        email_result = "Email sent successfully: " + ", ".join(to_emails)
+    elif email_result is False:
+        email_result = "Failed to send email: " + ", ".join(to_emails)
+    else:
+        email_result = None
+
     context = {
         "order_number": order_number,
-        "payment": payment
+        "payment": payment,
+        "email_result": email_result,
     }
     return render( request, "payment/payment_success.html",context)
 
@@ -170,4 +181,3 @@ def payment_failed(request):
         "payment": payment
     }
     return render( request, "payment/payment_failed.html",context)
-

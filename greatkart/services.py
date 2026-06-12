@@ -1,24 +1,33 @@
-import razorpay
 from django.conf import settings
 
-client = razorpay.Client(
-    auth=(
-        settings.RAZORPAY_KEY_ID,
-        settings.RAZORPAY_KEY_SECRET
-    )
-)
+import smtplib
+from email.message import EmailMessage as RawEmailMessage
+
+def send_email(subject, body, to_emails):
+    from django.conf import settings
+    # Configuration
+    smtp_server = settings.EMAIL_HOST
+    smtp_port = settings.EMAIL_PORT
+    sender_email = settings.EMAIL_HOST_USER
+    sender_password = settings.EMAIL_HOST_PASSWORD
+
+    msg = RawEmailMessage()
+    msg.set_content(body)
+    msg.add_alternative(body, subtype='html')
+    msg['Subject'] = subject
+    msg['From'] = sender_email
+    msg['To'] = to_emails
+
+    try:
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            # comment the below 2 in Production server
+            #server.starttls()
+            #server.login(sender_email, sender_password)
+            result = server.send_message(msg)
+            print(f"Email sent successfully! : {result}")
+        return True
+    except Exception as e:
+        print(f"Error sending email! : {e}")
+        return False
 
 
-def create_order(orderno, amount):
-    """
-    amount should be in paisa
-    """
-
-    data = {
-        "amount": amount,
-        "currency": "INR",
-        "orderno": orderno,
-        "payment_capture": 1
-    }
-
-    return client.order.create(data)

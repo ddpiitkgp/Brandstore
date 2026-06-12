@@ -8,6 +8,7 @@ class Payment(models.Model):
     total_price = models.CharField(max_length=100)
     status = models.CharField(max_length=100, default="INITIATED")
     txn_id = models.CharField(max_length=512, null=True, blank=True)  # Razorpay Order ID
+    txn_order = models.CharField(max_length=512, null=True, blank=True)  # Razorpay Payment ID
     txn_payment_id = models.CharField(max_length=512, null=True, blank=True)
     txn_signature = models.CharField(max_length=512, null=True, blank=True)
     txn_status = models.CharField(max_length=512, null=True, blank=True)

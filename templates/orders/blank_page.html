@@ -83,8 +83,8 @@
         })
         .catch((error) => {
           console.log("Payment Process Interrupted:", error);
-          alert("Payment Failed: " + error.message + "\n" + url);
-          window.location.href = cartUrl + "?payment_failed=true";
+          //alert("Payment Failed: " + error.message + "\n" + url);
+          // window.location.href = cartUrl + "?payment_failed=true";
         });
     }
 

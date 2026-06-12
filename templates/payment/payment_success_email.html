@@ -1,0 +1,77 @@
+<div
+  style="
+    background-color: #f8f9fa;
+    padding: 20px;
+    font-family: &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;
+    color: #333;
+  "
+>
+  <table
+    align="center"
+    border="0"
+    cellpadding="0"
+    cellspacing="0"
+    width="100%"
+    style="
+      max-width: 600px;
+      background-color: #ffffff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+    "
+  >
+    <tr>
+      <td align="center" style="padding: 40px 20px 20px 20px">
+        <div style="font-size: 48px; color: #28a745; margin-bottom: 10px">
+          ✔
+        </div>
+        <h2 style="margin: 0; font-size: 24px; color: #333">
+          Payment Successful
+        </h2>
+        <p style="color: #666; font-size: 14px">Thank you for shopping with us!</p>
+        <p style="color: #666; font-size: 14px">
+          Your payment has been successfully processed. We are now preparing your order for shipment. You will receive a confirmation email with the details of your purchase and shipping information shortly. Please find the summary of your payment below for your reference. <br>
+          Order Number: {{order_number}} <br>
+          Transaction No: {{payment.transaction_id}} <br>
+          Payment Method: {{payment.payment_method}} <br>
+          Payment Status: {{payment.status}} <br>
+          Payment Date: {{payment.created_at}} <br>
+          Payment Amount: Rs.{{payment.amount}} <br>
+          <br>We appreciate your business and look forward to serving you again!<>
+        </p>
+      </td>
+    </tr>
+
+    <tr>
+      <td
+        align="center"
+        style="padding: 20px 40px 40px 40px; border-top: 1px solid #eeeeee"
+      >
+        <p
+          style="
+            font-size: 12px;
+            color: #888;
+            line-height: 18px;
+            margin-bottom: 20px;
+          "
+        >
+          We will deliver the order and inform you about in 2 business
+          days with courier and tracking details.
+        </p>
+        <a
+          href="https://brandstore.iitkgp.ac.in/store/"
+          style="
+            background-color: #28a745;
+            color: #ffffff;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            display: inline-block;
+          "
+          >Shop More</a
+        >
+      </td>
+    </tr>
+  </table>
+</div>
