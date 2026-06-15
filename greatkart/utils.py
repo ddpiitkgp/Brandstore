@@ -8,8 +8,9 @@ def send_email(subject, body, to_emails):
     # Configuration
     smtp_server = settings.EMAIL_HOST
     smtp_port = settings.EMAIL_PORT
-    sender_email = settings.EMAIL_HOST_USER
-    sender_password = settings.EMAIL_HOST_PASSWORD
+    sender_email = settings.DEFAULT_FROM_EMAIL
+    auth_sender_email = settings.EMAIL_HOST_USER
+    auth_sender_password = settings.EMAIL_HOST_PASSWORD
 
     msg = RawEmailMessage()
     msg.set_content(body)
@@ -20,9 +21,10 @@ def send_email(subject, body, to_emails):
 
     try:
         with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.set_debuglevel(1)  # <--- important
             # comment the below 2 in Production server
             #server.starttls()
-            #server.login(sender_email, sender_password)
+            #server.login(auth_sender_email, auth_sender_email)
             result = server.send_message(msg)
             print(f"Email sent successfully! : {result}")
         return True

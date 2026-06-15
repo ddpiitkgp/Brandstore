@@ -15,7 +15,7 @@ import razorpay
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from greatkart.services import send_email
+from greatkart.utils import send_email
 
 
 def payment(request):

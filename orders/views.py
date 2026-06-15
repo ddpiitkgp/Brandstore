@@ -12,7 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.conf import settings
 
-from greatkart.services import send_email
+from greatkart.utils import send_email
 
 @require_POST
 @login_required(login_url='login')
