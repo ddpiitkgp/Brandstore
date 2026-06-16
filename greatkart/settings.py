@@ -30,6 +30,7 @@ INSTALLED_APPS = [
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CSRF_TRUSTED_ORIGINS = [
     "https://brandstore.iitkgp.ac.in",
+    "https://api.razorpay.com",
     #"http://127.0.0.1:8000",
     #"http://127.0.0.1:8080",
     #"http://localhost:8000",

@@ -10,6 +10,13 @@
                 <hr>
                 <div class="card">
                     <div class="card-body">
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-danger">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
                         <p><strong>Order Number : </strong><input class='form-input' max-length=50 size=20 value="{{ order_number }}" name=order_id></p>
                         <p><strong>Total Amount : </strong><input class='form-input' max-length=50 size=20 value="{{ total_amount }}" name=amount></p>
                         <p>By clicking the button below, you agree to our terms of service.</p>

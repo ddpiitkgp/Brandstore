@@ -3,8 +3,6 @@
 
 {% block content %}
 
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-
 <div class="container" style="margin: 0 auto;width: 50%;padding: 50px;background: #f1f1f1;margin-top: 50px;margin-bottom: 50px;">
     <div class="row invoice row-printable">
         <div class="col-md-12">
@@ -75,90 +73,26 @@
                                 </div>
                             </div>
                              <!-- -->
-                            <div class="invoice-footer mt25 text-center">
+                            <div class="invoice-footer mt25 text-center"></div>
 
-                                <button id="rzp-button" class="btn btn-primary">
-                                    Proceed to Payment
-                                </button>
-
-                            </div>
-
-                            <form id="payment-success-form"
-                                  action="{% url 'payment_response' %}"
-                                  method="POST"
-                                  style="display:none;">
-
-                                {% csrf_token %}
-
-                                <input type="hidden"
-                                       name="razorpay_payment_id"
-                                       id="razorpay_payment_id">
-
-                                <input type="hidden"
-                                       name="razorpay_order_id"
-                                       id="razorpay_order_id">
-
-                                <input type="hidden"
-                                       name="razorpay_signature"
-                                       id="razorpay_signature">
-
-                                <input type="hidden"
-                                       name="order_number"
-                                       value="{{ order.order_number }}">
+                            <form method="POST" action="https://api.razorpay.com/v1/checkout/embedded">
+                                  <input type="hidden" name="key_id" value="{{razorpay_key}}"/>
+                                  <input type="hidden" name="amount" value="{{frm_amount}}"/>
+                                  <input type="hidden" name="currency" value="INR"/>
+                                  <input type="hidden" name="order_id" value="{{razorpay_order_id}}"/>
+                                  {% for item in order_detail %}
+                                    <input type="hidden" name="name" value="{{item.product.product_name}}"/>
+                                    <input type="hidden" name="description" value="{{item.product.product_name}}"/>
+                                    <input type="hidden" name="image" value="https://cdn.razorpay.com/logos/BUVwvgaqVByGp2_large.jpg"/>
+                                  {% endfor %}
+                                  <input type="hidden" name="prefill[name]" value="{{order.full_name}}"/>
+                                  <input type="hidden" name="prefill[contact]" value="{{order.phone}}"/>
+                                  <input type="hidden" name="prefill[email]" value="{{order.email}}"/>
+                                  <input type="hidden" name="notes[shipping address]" value="{{order.full_address}} {{order.city}}, {{order.state}}m, {{order.country}}"/>
+                                  <input type="hidden" name="callback_url" value="https://brandstore.iitkgp.ac.in/payment/payment_callback/"/>
+                                  <button id="rzp-button" class="btn btn-primary">Proceed to Payment</button>
                             </form>
 
-                            <script>
-
-                            var options = {
-
-                                key: "{{ razorpay_key }}",
-                                amount: "{{ amount|floatformat:2 }}00",
-                                currency: "INR",
-                                name: "Foreverkgpian, IIt Kharagpur",
-                                description: "Order #{{ order.order_number }}",
-                                order_id: "{{ razorpay_order_id }}",
-                                prefill: {
-                                    name: "{{ customer_name }}",
-                                    email: "{{ email }}"
-                                },
-
-                                theme: {
-                                    color: "#3399cc"
-                                },
-
-                                handler: function (response) {
-
-                                    document.getElementById(
-                                        "razorpay_payment_id"
-                                    ).value = response.razorpay_payment_id;
-
-                                    document.getElementById(
-                                        "razorpay_order_id"
-                                    ).value = response.razorpay_order_id;
-
-                                    document.getElementById(
-                                        "razorpay_signature"
-                                    ).value = response.razorpay_signature;
-
-                                    document.getElementById(
-                                        "payment-success-form"
-                                    ).submit();
-                                }
-                            };
-
-                            var rzp = new Razorpay(options);
-
-                            document.getElementById("rzp-button").onclick = function(e) {
-                                rzp.open();
-                                e.preventDefault();
-                            };
-
-                            rzp.on('payment.failed', function(response) {
-                                
-                                window.location.href = "{% url 'payment_failed' %}?order_number={{ order.order_number }}";
-                            });
-                            </script>
-                             <!-- -->
                         </div>
                         <!-- col-lg-12 end here -->
                     </div>
