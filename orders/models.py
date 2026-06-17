@@ -4,15 +4,13 @@ from accounts.models import Account
 from store.models import ProductVariation, Product
 
 class Payment(models.Model):
+    id = models.AutoField(primary_key=True)
     order_id = models.CharField(max_length=100, db_index=True)
+    payment_id = models.IntegerField()
     total_price = models.CharField(max_length=100)
     status = models.CharField(max_length=100, default="INITIATED")
-    txn_id = models.CharField(max_length=512, null=True, blank=True)  # Razorpay Order ID
-    txn_order = models.CharField(max_length=512, null=True, blank=True)  # Razorpay Payment ID
-    txn_payment_id = models.CharField(max_length=512, null=True, blank=True)
-    txn_signature = models.CharField(max_length=512, null=True, blank=True)
-    txn_status = models.CharField(max_length=512, null=True, blank=True)
-    txn_amount_paid = models.CharField(max_length=100, null=True, blank=True)
+    razorpay_order = models.CharField(max_length=512, default="INITIATED")
+    txn_details = models.CharField(max_length=512, null=True, blank=True)  # Razorpay 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -83,9 +81,8 @@ class PaymentHistory(models.Model):
     order_id = models.CharField(max_length=100, db_index=True)
     event_name = models.CharField(max_length=100)
     status = models.CharField(max_length=100)
-    rawdata_inp = models.TextField(null=True, blank=True)
-    rawdata_out = models.TextField(null=True, blank=True)
-    remarks = models.TextField(null=True, blank=True)
+    rawdata = models.TextField(null=True, blank=True)
+    txn_details = models.CharField(max_length=512, null=True, blank=True)  # Razorpay 
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

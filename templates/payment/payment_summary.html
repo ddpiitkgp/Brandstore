@@ -88,7 +88,8 @@
                                   <input type="hidden" name="prefill[name]" value="{{order.full_name}}"/>
                                   <input type="hidden" name="prefill[contact]" value="{{order.phone}}"/>
                                   <input type="hidden" name="prefill[email]" value="{{order.email}}"/>
-                                  <input type="hidden" name="notes[shipping address]" value="{{order.full_address}} {{order.city}}, {{order.state}}m, {{order.country}}"/>
+                                  <input type="hidden" name="notes[payment_id]" value="{{payment_id}}"/>
+                                  <input type="hidden" name="notes[shipping address]" value="{{order.full_address}} {{order.city}}, {{order.state}}, {{order.country}}"/>
                                   <input type="hidden" name="callback_url" value="https://brandstore.iitkgp.ac.in/payment/payment_callback/"/>
                                   <button id="rzp-button" class="btn btn-primary">Proceed to Payment</button>
                             </form>

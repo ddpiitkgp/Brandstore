@@ -48,31 +48,51 @@ def payment_summary(request):
 
         order_detail = OrderProduct.objects.filter(order=order)
         
-        payment = Payment.objects.filter(order_id=frm_order_id).first()
-        #payment_info = client.payment.fetch(rzp_payment_id)
+        rzp_order_id = request.POST.get("razorpay_order_id")
+        rzp_payment_id = request.POST.get("razorpay_payment_id")
+        rzp_signature = request.POST.get("razorpay_signature")
 
         razorpay_order = client.order.create({
             "amount": int(float(frm_amount)*100),
             "currency": "INR",
             "payment_capture": 1,
             "notes": {
-                "order_no": frm_order_id
+                "order_no": frm_order_id,
+                "customer_name": order.full_name(),
+                "email": order.user.email,
+                "product_name": product_variation.product.product_name,
+                "product_id": product_variation.product_id,
             }
         })
 
-        rzp_order_id = request.POST.get("razorpay_order_id")
-        rzp_payment_id = request.POST.get("razorpay_payment_id")
-        rzp_signature = request.POST.get("razorpay_signature")
+        payment, created = Payment.objects.update_or_create(
+            order_id=frm_order_id,
+            defaults={
+                "total_price": int(float(frm_amount)),
+                "status": "Started",
+                "razorpay_order": json.dumps(
+                    razorpay_order,
+                    default=str
+                ),
+            }
+        )
+#        payment = Payment.objects.create(
+#            order_id = frm_order_id,
+#            total_price = int(float(frm_amount)),
+#            status="Started",
+#            razorpay_order=json.dumps(razorpay_order, default=str),  # if TextField
+#        )
 
         PaymentHistory.objects.create(
             payment=payment,
             order_id=frm_order_id,
             event_name="CALLBACK_RECEIVED",
             status="PROCESSING",
-            rawdata_inp=json.dumps(dict(request.POST), default=str)
+            rawdata=json.dumps(dict(request.POST), default=str)
         )
 
         context = {
+            "payment_id": payment.id,
             "order": order,
             "amount": frm_amount,
             "customer_name": order.full_name(),
@@ -85,7 +105,6 @@ def payment_summary(request):
             "razorpay_order_id": razorpay_order["id"],
             "razorpay_key": settings.RAZORPAY_KEY_ID,
         }
-
         return render(
             request,
             "payment/payment_summary.html",
@@ -104,45 +123,54 @@ def payment_callback(request):
     rzp_payment_id = request.POST.get("razorpay_payment_id")
     rzp_order_id = request.POST.get("razorpay_order_id")
     rzp_signature = request.POST.get("razorpay_signature")
+    client = razorpay.Client( auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+  
+    if not all([rzp_order_id, rzp_payment_id, rzp_signature]):
+        return payment_failed(request, {"reason": "Missing Essestion PG Data"})
+    else:
+        # Get Razorpay Order Details
+        razorpay_order = client.order.fetch(rzp_order_id)
+        #print(json.dumps(razorpay_order, indent=2))
+        payment_info = client.payment.fetch(rzp_payment_id)
+        #print(json.dumps(payment_info, indent=2))
+        payment_id = payment_info.get("notes", {}).get("payment_id")
+        razor_pay_data = {
+                "razorpay_order_id": rzp_order_id,
+                "razorpay_payment_id": rzp_payment_id,
+                "razorpay_signature": rzp_signature,
+                "payment_id": payment_id,
+                
+         }
+        print(json.dumps(razor_pay_data, indent=2))
+        try:
+            client.utility.verify_payment_signature(razor_pay_data)
+            # Forward request to success page
+            return payment_success(request, razor_pay_data)
 
-    client = razorpay.Client(
-        auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
-    )
-
-    try:
-        client.utility.verify_payment_signature({
-            "razorpay_order_id": rzp_order_id,
-            "razorpay_payment_id": rzp_payment_id,
-            "razorpay_signature": rzp_signature
-        })
-
-        # Forward request to success page
-        return payment_success(request)
-
-    except razorpay.errors.SignatureVerificationError:
-        
-        # Forward request to failed page
-        return payment_failed(request)
+        except razorpay.errors.SignatureVerificationError as e:
+             # Forward request to failed page
+            
+            return payment_failed(request, {"reason": str(e)})
 
 @csrf_exempt
-def payment_success(request):
+def payment_success(request, razor_pay_data):
 
     client = razorpay.Client(
         auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
     )
 
-    razorpay_order = client.order.fetch( 
-        request.POST["razorpay_order_id"]
-    )
+    razorpay_order = client.order.fetch( razor_pay_data['razorpay_order_id'] )
 
     # Data from Razorpay Checkout
-    rzp_payment_id = request.POST.get("razorpay_payment_id")
-    rzp_order_id = request.POST.get("razorpay_order_id")
-    rzp_signature = request.POST.get("razorpay_signature")
+    rzp_payment_id = razor_pay_data['razorpay_payment_id']
+    rzp_order_id = razor_pay_data['razorpay_order_id']
+    rzp_signature = razor_pay_data['razorpay_signature']
 
     prd_order_no = razorpay_order["notes"].get("order_no")
     order = Order.objects.filter(order_number=prd_order_no).first()
-    payment = Payment.objects.filter(order_id=prd_order_no).first()
+
+    payment = Payment.objects.filter(id=razor_pay_data["payment_id"]).first()
+    #payment = Payment.objects.filter(order_id=prd_order_no).first()
     payment_info = client.payment.fetch(rzp_payment_id)
 
     PaymentHistory.objects.create(
@@ -150,16 +178,13 @@ def payment_success(request):
         order_id=prd_order_no,
         event_name="CALLBACK_SUCCEEDED",
         status="SUCCEEDED",
-        rawdata_inp=json.dumps(dict(request.POST), default=str)
+        rawdata=json.dumps(dict(request.POST), default=str),
+        txn_details = json.dumps(dict(payment_info), default=str),
     )
 
     if payment:
-        payment.status = "SUCCESS"
-        payment.txn_id = rzp_order_id
-        payment.txn_payment_id = rzp_payment_id
-        payment.txn_signature = rzp_signature
-        payment.txn_status = payment_info.get("status")
-        payment.txn_amount_paid = str(payment_info.get("amount", 0) / 100)
+        payment.status = f"{payment.status} | Success" 
+        payment.txn_details= json.dumps(dict(payment_info), default=str),
         payment.save()
 
     if order:
@@ -168,6 +193,7 @@ def payment_success(request):
             {
                 'order_number': prd_order_no,
                 'payment': payment,
+                'txn_data': json.loads(payment.txn_details[0]),
             }
         )
 
@@ -193,49 +219,29 @@ def payment_success(request):
     context = {
         "order_number": prd_order_no,
         "payment": payment,
+        'txn_data': json.loads(payment.txn_details[0]),
         "email_result": email_result,
     }
-
-    return render(
-        request,
-        "payment/payment_success.html",
-        context
-    )
+    
+    return render( request, "payment/payment_success.html", context)
 
 @csrf_exempt
-def payment_failed(request):
-
-    client = razorpay.Client(
-        auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
-    )
-    razorpay_order = client.order.fetch(
-        request.POST["razorpay_order_id"]
-    )
-    prd_order_no = razorpay_order["notes"].get("order_no")
-    payment = Payment.objects.filter(order_id=prd_order_no).first()
-    if payment:
-        payment.status = "FAILED"
-        payment.txn_status = "FAILED"
-        payment.save()
-
-    PaymentHistory.objects.create(
-        payment=payment,
-        order_id=prd_order_no,
-        event_name="CALLBACK_FAILED",
-        status="FAILED",
-        rawdata_inp=json.dumps(dict(request.POST), default=str)
-    )
-
+def payment_failed(request, context_data):
+    order_number = request.POST.get("order_id")
+    
+#    payment = Payment.objects.filter(order_id=order_number).first()
+#    PaymentHistory.objects.create(
+#        order_id=order_number,
+#        event_name="CALLBACK_FAILED",
+#        status="FAILED",
+#        rawdata=json.dumps(dict(request.POST), default=str),
+#        txn_details = json.dumps(dict(request.POST), default=str),
+#    )
     context = {
-        "order_number": prd_order_no,
-        "payment": payment,
+        "order_id": order_number,
+        "reason": context_data['reason']
     }
-
-    return render(
-        request,
-        "payment/payment_failed.html",
-        context
-    )
+    return render( request, "payment/payment_failed.html", context )
 
 @csrf_exempt
 def payment_response(request):
@@ -260,7 +266,7 @@ def payment_response(request):
             order_id=order_number,
             event_name="CALLBACK_RECEIVED",
             status="PROCESSING",
-            rawdata_inp=json.dumps(dict(request.POST), default=str)
+            rawdata=json.dumps(dict(request.POST), default=str)
         )
 
         client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
@@ -286,7 +292,7 @@ def payment_response(request):
             order_id=order_number,
             event_name="PAYMENT_VERIFIED",
             status="SUCCESS",
-            rawdata_out=json.dumps(payment_info, default=str)
+            rawdata=json.dumps(payment_info, default=str)
         )
 
         return redirect(f"/payment/payment_success/?order_number={order_number}")
@@ -303,7 +309,7 @@ def payment_response(request):
             order_id=order_number,
             event_name="PAYMENT_FAILED",
             status="FAILED",
-            rawdata_inp=json.dumps(dict(request.POST), default=str),
+            rawdata=json.dumps(dict(request.POST), default=str),
             remarks=str(e)
         )
 

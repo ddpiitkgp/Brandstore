@@ -21,17 +21,16 @@ def payments(request):
     order = Order.objects.get(user=request.user, order_number=body['orderID'])
 
     # 1. Store transaction details
-    payment = Payment(
-        order_id = order.order_number,  
-        txn_payment_id = body['transID'],
-        total_price = order.order_total,
-        txn_amount_paid = order.order_total,  # Assuming the amount paid is the same as order total
-        txn_order = order.order_number,
-        status = body['status'],
+    payment, created = Payment.objects.update_or_create(
+        order_id=order.order_number,
+        defaults={
+            "payment_id": body["transID"],
+            "total_price": order.order_total,
+            "status": body["status"],
+        }
     )
-    payment.save()
 
-    if body['status'] == 'COMPLETED':
+    if body['status'] == 'Started':
         order.payment = payment
         order.is_ordered = True
         order.save()
@@ -85,9 +84,8 @@ def payments(request):
             'order': order,
             'ordered_products': ordered_products,
             'order_number': order.order_number,
-            'transID': payment.txn_payment_id,
+            'transID': payment.payment_id,
             'payment': payment,
-
             'subtotal': subtotal,
             'cgst': total_cgst,
             'sgst': total_sgst,
@@ -109,7 +107,7 @@ def payments(request):
         
         data = {
             'order_number': order.order_number,
-            'transID': payment.txn_payment_id,            
+            'transID': payment.payment_id,          
         }
         return JsonResponse(data)
     
@@ -217,7 +215,7 @@ def order_complete(request):
         for i in ordered_products:
             subtotal += i.product_price * i.quantity
 
-        payment = Payment.objects.get(txn_payment_id=transID)
+        payment = Payment.objects.get(payment_id=transID)
         total_cgst = 0
         total_sgst = 0
         for i in ordered_products:
@@ -250,7 +248,7 @@ def order_complete(request):
             'order': order,
             'ordered_products': ordered_products,
             'order_number': order.order_number,
-            'transID': payment.txn_payment_id,
+            'transID': payment.payment_id,
             'payment': payment,
             'subtotal': subtotal,
             'cgst': total_cgst,
@@ -261,7 +259,8 @@ def order_complete(request):
             'email_result': email_result,
         }
         return render(request, 'orders/order_complete.html', context)
-    except (Payment.DoesNotExist, Order.DoesNotExist):
+    except (Payment.DoesNotExist, Order.DoesNotExist) as e:
+        print("ERROR:", str(e))
         return redirect('home')
 
 def blank_page(request):
@@ -281,7 +280,7 @@ def email_template(request):
     transID = request.GET.get('payment_id')
     
     try:
-        payment = Payment.objects.get(txn_payment_id=transID)
+        payment = Payment.objects.get(payment_id=transID)
         order = Order.objects.get(order_number=order_number, is_ordered=True)
         ordered_products = OrderProduct.objects.filter(order_id=order.id)
         
@@ -301,7 +300,7 @@ def email_template(request):
             'order': order,
             'ordered_products': ordered_products,
             'order_number': order.order_number,
-            'transID': payment.txn_payment_id,
+            'transID': payment.payment_id,
             'payment': payment,
             'subtotal': subtotal,
             'cgst': total_cgst,

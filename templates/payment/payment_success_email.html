@@ -32,12 +32,12 @@
         <p style="color: #666; font-size: 14px; text-align: justify">
           Your payment has been successfully processed. We are now preparing your order for shipment. You will receive a confirmation email with the details of your purchase and shipping information shortly. Please find the summary of your payment below for your reference. <br>
           Order Number: {{order_number}} <br>
-          Transaction Id: {{payment.txn_id }}<br>
-          Payment Id: {{payment.txn_payment_id}}<br>
-          Payment Status: {{payment.status}} <br>
+          Transaction Id: {{ txn_data.acquirer_data.upi_transaction_id }}<br>
+          Payment Id: {{txn_data.id}}<br>
+          Payment Status: {{txn_data.status}} <br>
           Payment Date: {{payment.updated_at}} <br>
-          Payment Amount: Rs.{{payment.txn_amount_paid}} <br>
-          <br>We appreciate your business and look forward to serving you again!<>
+          Payment Amount: Rs.{{payment.total_price}} <br>
+          <br>We appreciate your business and look forward to serving you again!
         </p>
       </td>
     </tr>
