@@ -33,3 +33,15 @@ def send_email(subject, body, to_emails):
         return False
 
 
+def gst_breakup(amount_with_gst, cgst_percent, sgst_percent):
+    total_gst_percent = cgst_percent + sgst_percent
+
+    amount_without_gst = amount_with_gst / (1 + total_gst_percent / 100)
+    cgst_amount = amount_without_gst * cgst_percent / 100
+    sgst_amount = amount_without_gst * sgst_percent / 100
+
+    return (
+        round(amount_without_gst, 2),
+        round(cgst_amount, 2),
+        round(sgst_amount, 2),
+    )

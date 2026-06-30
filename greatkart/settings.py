@@ -88,6 +88,7 @@ DATABASES = {
         'PASSWORD': os.environ.get('DB_PASSWORD', 'rootpassword'),
         'HOST': os.environ.get('DB_HOST', 'mariadb'), # Match the service name
         'PORT': os.environ.get('DB_PORT', '3306'),
+        'CONN_MAX_AGE': 60,
         ##  SQLITE
         ## 'ENGINE': 'django.db.backends.sqlite3',
         ## #'NAME': BASE_DIR / 'dbdata/db.sqlite3',

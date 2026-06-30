@@ -13,6 +13,7 @@ from django.contrib import messages
 from django.conf import settings
 
 from greatkart.utils import send_email
+from greatkart.utils import gst_breakup
 
 @require_POST
 @login_required(login_url='login')
@@ -130,24 +131,25 @@ def place_order(request, total=0, quantity=0):
     total_cgst = 0
     total_sgst = 0
     grand_total = 0
-    
+    total_taxable_price = 0
+
     for cart_item in cart_items:
         total += (cart_item.product.price * cart_item.quantity)
         quantity += cart_item.quantity
         
-        # Calculate Category-based Tax
-        # Calculation: (Price * Quantity) * (Tax_Rate / 100)
-        item_cgst = round((cart_item.product.price * cart_item.quantity) * (float(cart_item.product.category.cgst) / 100), 2)
-        item_sgst = round((cart_item.product.price * cart_item.quantity) * (float(cart_item.product.category.sgst) / 100), 2)
+        cgst_rate = float(cart_item.product.category.cgst)
+        sgst_rate = float(cart_item.product.category.sgst)
+        taxable_amount, item_cgst, item_sgst = gst_breakup(total, cgst_rate, sgst_rate)
+        total_taxable_price += taxable_amount
         total_cgst += item_cgst
         total_sgst += item_sgst
 
     total_tax = round(total_cgst + total_sgst, 2)
-    grand_total = round(total + total_tax, 2)
+    grand_total = round(total , 2)
     
     # Calculate effective tax percentages
-    cgst_percentage = round((total_cgst / total * 100) if total > 0 else 0, 2)
-    sgst_percentage = round((total_sgst / total * 100) if total > 0 else 0, 2)
+    cgst_percentage = cgst_rate #ound((total_cgst / total * 100) if total > 0 else 0, 2)
+    sgst_percentage = sgst_rate #round((total_sgst / total * 100) if total > 0 else 0, 2)
 
     if request.method == 'POST':
         form = OrderForm(request.POST)
@@ -186,7 +188,7 @@ def place_order(request, total=0, quantity=0):
                 context = {
                     'order': order,
                     'cart_items': cart_items,
-                    'total': total,
+                    'total': total_taxable_price,
                     'cgst': total_cgst,
                     'sgst': total_sgst,
                     'cgst_percentage': cgst_percentage,
@@ -211,17 +213,22 @@ def order_complete(request):
         order = Order.objects.get(order_number=order_number, is_ordered=True)
         ordered_products = OrderProduct.objects.filter(order_id=order.id)
 
-        subtotal = 0
-        for i in ordered_products:
-            subtotal += i.product_price * i.quantity
+        #subtotal = 0
+        #for i in ordered_products:
+        #    subtotal += i.product_price * i.quantity
 
         payment = Payment.objects.get(payment_id=transID)
         total_cgst = 0
         total_sgst = 0
+        subtotal = 0
         for i in ordered_products:
             subtotal += i.product_price * i.quantity
             total_cgst += i.cgst
             total_sgst += i.sgst
+
+            #cgst_rate = float(cart_item.product.category.cgst)
+            #sgst_rate = float(cart_item.product.category.sgst)
+            #taxable_amount, item_cgst, item_sgst = gst_breakup(total, cgst_rate, sgst_rate)
 
         # Round the total tax values to 2 decimal places
         total_cgst = round(total_cgst, 2)

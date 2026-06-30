@@ -40,6 +40,16 @@ def payment_summary(request):
         frm_amount = request.POST.get("amount")
 
         order = Order.objects.filter(order_number=frm_order_id).first()
+
+        # Check if payment already completed
+        existing_success = Payment.objects.filter(
+            order_id=frm_order_id,
+            status__icontains="Success"
+        ).exists()
+
+        if existing_success:
+            return payment_failed(request, {"reason": " Payment already completed for this order."})
+
         orderproduct = OrderProduct.objects.filter(order=order).first()
 
         product_variation = ProductVariation.objects.filter(
@@ -76,12 +86,6 @@ def payment_summary(request):
                 ),
             }
         )
-#        payment = Payment.objects.create(
-#            order_id = frm_order_id,
-#            total_price = int(float(frm_amount)),
-#            status="Started",
-#            razorpay_order=json.dumps(razorpay_order, default=str),  # if TextField
-#        )
 
         PaymentHistory.objects.create(
             payment=payment,

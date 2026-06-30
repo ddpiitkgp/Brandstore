@@ -7,8 +7,10 @@ from django.contrib import messages
 
 # Create your views here.
 from django.http import HttpResponse
-
 from django.views.decorators.csrf import csrf_exempt
+
+from greatkart.utils import gst_breakup
+
 
 def _cart_id(request):
     cart = request.session.session_key
@@ -134,47 +136,49 @@ def cart(request, total=0, quantity=0, cart_items=None):
             cart = Cart.objects.get(cart_id=_cart_id(request))
             cart_items = CartItem.objects.filter(cart=cart, is_active=True)
         for cart_item in cart_items:
-            total += (cart_item.product.price * cart_item.quantity)
-            quantity += cart_item.quantity
-            
-            # Calculate Category-based Tax
-            # Calculation: (Price * Quantity) * (Tax_Rate / 100)
-            item_cgst = round((cart_item.product.price * cart_item.quantity) * (float(cart_item.product.category.cgst) / 100), 2)
-            item_sgst = round((cart_item.product.price * cart_item.quantity) * (float(cart_item.product.category.sgst) / 100), 2)
+            total += float(cart_item.product.price * cart_item.quantity)
+            quantity += float(cart_item.quantity)
+
+            cgst_rate = float(cart_item.product.category.cgst)
+            sgst_rate = float(cart_item.product.category.sgst)
+            total_gst = float(cgst_rate + sgst_rate)
+
+            taxable_amount, item_cgst, item_sgst = gst_breakup(total, cgst_rate, sgst_rate)
+
+            total_gst = total - taxable_amount
+
+            total = round(taxable_amount, 2)
             total_cgst += item_cgst
             total_sgst += item_sgst
             
-        tax = round(total_cgst + total_sgst, 2)
-        grand_total = round(total + tax, 2)
-        
-        # Calculate effective tax percentages
-        cgst_percentage = round((total_cgst / total * 100) if total > 0 else 0, 2)
-        sgst_percentage = round((total_sgst / total * 100) if total > 0 else 0, 2)
+        tax = (total_cgst + total_sgst)
+        grand_total = round((total + tax), 2)
+
     except ObjectDoesNotExist:
         total_cgst = 0
         total_sgst = 0
         tax = 0
         grand_total = 0
-        cgst_percentage = 0
-        sgst_percentage = 0
+        cgst_rate = 0
+        sgst_rate = 0
         pass #just ignore
 
     context = {
-        'total': total,
+        'total': round(total, 2),
         'quantity': quantity,
         'cart_items': cart_items,
-        'cgst': total_cgst,
-        'sgst': total_sgst,
-        'cgst_percentage': cgst_percentage,
-        'sgst_percentage': sgst_percentage,
-        'tax': tax,
-        'grand_total': grand_total,
+        'cgst': round(total_cgst, 2),
+        'sgst': round(total_sgst, 2),
+        'cgst_percentage': cgst_rate,
+        'sgst_percentage': sgst_rate,
+        'tax': round(tax, 2),
+        'grand_total': round(grand_total, 0),
     }
     return render(request, 'store/cart.html', context)
 
 
 @login_required(login_url='login')
-def checkout(request, total=0, quantity=0, cart_items=None):
+def checkout(request, total_price=0, quantity=0, cart_items=None):
     try:
         total_cgst = 0
         total_sgst = 0
@@ -184,23 +188,26 @@ def checkout(request, total=0, quantity=0, cart_items=None):
         else:
             cart = Cart.objects.get(cart_id=_cart_id(request))
             cart_items = CartItem.objects.filter(cart=cart, is_active=True)
+
         for cart_item in cart_items:
-            total += (cart_item.product.price * cart_item.quantity)
+            total_price += (cart_item.product.price * cart_item.quantity)
             quantity += cart_item.quantity
             
-            # Calculate Category-based Tax
-            # Calculation: (Price * Quantity) * (Tax_Rate / 100)
-            item_cgst = (cart_item.product.price * cart_item.quantity) * (float(cart_item.product.category.cgst) / 100)
-            item_sgst = (cart_item.product.price * cart_item.quantity) * (float(cart_item.product.category.sgst) / 100)
+            cgst_rate = float(cart_item.product.category.cgst)
+            sgst_rate = float(cart_item.product.category.sgst)
+            total_gst = float(cgst_rate + sgst_rate)
+            
+            taxable_amount, item_cgst, item_sgst = gst_breakup(total_price, cgst_rate, sgst_rate)
+            total_gst = total_price - taxable_amount
+            
+            total = round(taxable_amount, 2)
             total_cgst += item_cgst
             total_sgst += item_sgst
             
-        tax = total_cgst + total_sgst
-        grand_total = total + tax
-        
-        # Calculate effective tax percentages
-        cgst_percentage = (total_cgst / total * 100) if total > 0 else 0
-        sgst_percentage = (total_sgst / total * 100) if total > 0 else 0
+        tax = (total_cgst + total_sgst)
+        grand_total = round((total + tax), 2)
+
+
     except ObjectDoesNotExist:
         total_cgst = 0
         total_sgst = 0
@@ -211,14 +218,14 @@ def checkout(request, total=0, quantity=0, cart_items=None):
         pass #just ignore
 
     context = {
-        'total': total,
+        'total': round(total,2),
         'quantity': quantity,
         'cart_items': cart_items,
-        'cgst': total_cgst,
-        'sgst': total_sgst,
-        'cgst_percentage': cgst_percentage,
-        'sgst_percentage': sgst_percentage,
-        'tax': tax,
-        'grand_total': grand_total,
+        'cgst': round(total_cgst, 2),
+        'sgst': round(total_sgst, 2),
+        'cgst_percentage': round(cgst_rate, 2),
+        'sgst_percentage': round(sgst_rate, 2),
+        'tax': round(tax, 2),
+        'grand_total': round(grand_total, 2),
     }
     return render(request, 'store/checkout.html', context)
